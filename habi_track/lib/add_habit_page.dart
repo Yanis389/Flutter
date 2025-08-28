@@ -10,101 +10,42 @@ class AddHabitPage extends StatefulWidget {
 
 class _AddHabitPageState extends State<AddHabitPage> {
   final TextEditingController _controller = TextEditingController();
-  final CollectionReference habitsCollection =
+  final CollectionReference habitsRef =
       FirebaseFirestore.instance.collection('habits');
 
-  void addHabit() async {
+  Future<void> addHabit() async {
     final name = _controller.text.trim();
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Le nom de l'habitude ne peut pas être vide"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
+    if (name.isEmpty) return;
 
-    try {
-      // Vérification insensible à la casse
-      final query = await habitsCollection
-          .where('name_lower', isEqualTo: name.toLowerCase())
-          .get();
+    final query = await habitsRef.where('name_lower', isEqualTo: name.toLowerCase()).get();
+    if (query.docs.isNotEmpty) return;
 
-      if (query.docs.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("L'habitude '$name' existe déjà !"),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-        return;
-      }
+    await habitsRef.add({
+      'name': name,
+      'name_lower': name.toLowerCase(),
+      'completed': false,
+      'lastCompleted': DateTime.now().toIso8601String(),
+      'streak': 0,
+    });
 
-      // Ajouter l'habitude
-      await habitsCollection.add({
-        'name': name,
-        'name_lower': name.toLowerCase(),
-        'completed': false,
-        'lastCompleted': DateTime.now().toIso8601String(),
-        'streak': 0,
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Habitude '$name' ajoutée avec succès !"),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-
-      _controller.clear();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Erreur lors de l'ajout"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
+    if (!mounted) return;
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ajouter une habitude'),
-        backgroundColor: Colors.blueAccent,
-      ),
+      appBar: AppBar(title: const Text('Ajouter une habitude')),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             TextField(
               controller: _controller,
-              decoration: InputDecoration(
-                labelText: 'Nom de l’habitude',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: const Icon(Icons.checklist),
-              ),
+              decoration: const InputDecoration(labelText: 'Nom de l’habitude'),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: addHabit,
-              icon: const Icon(Icons.add),
-              label: const Text('Ajouter'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: addHabit, child: const Text('Ajouter')),
           ],
         ),
       ),

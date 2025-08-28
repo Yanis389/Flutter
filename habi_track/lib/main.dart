@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'home_page.dart';
+import 'notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp(
-    options: const FirebaseOptions(
-      apiKey: "AIzaSyB5K95kls15pl-GQhiBAgVYhW08ym8k2uA",
-      authDomain: "habitrack-5f7fd.firebaseapp.com",
-      projectId: "habitrack-5f7fd",
-      storageBucket: "habitrack-5f7fd.appspot.com",
-      messagingSenderId: "176300134015",
-      appId: "1:176300134015:web:3353624c82891c0785394a",
-      measurementId: "G-N4J2GXXKGD",
-    ),
+    options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  await NotificationService.instance.init();
+
   runApp(const HabiTrackApp());
 }
 
@@ -23,16 +21,19 @@ class HabiTrackApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = ColorScheme.fromSeed(seedColor: const Color(0xFF4F93F9));
+
     return MaterialApp(
       title: 'HabiTrack',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.grey[100],
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          ),
+        colorScheme: colorScheme,
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF6F7FB),
+        appBarTheme: const AppBarTheme(
+          foregroundColor: Colors.white,
+          centerTitle: true,
+          titleTextStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
         ),
       ),
       home: const HomePage(),
