@@ -28,26 +28,23 @@ class _HomePageState extends State<HomePage> {
   ];
 
   Future<void> addPredefinedHabit(String name) async {
-    try {
+    final query = await habitsRef
+        .where('name_lower', isEqualTo: name.toLowerCase().trim())
+        .get();
+
+    if (query.docs.isEmpty) {
       await habitsRef.add({
         'name': name,
+        'name_lower': name.toLowerCase().trim(),
         'completed': false,
         'lastCompleted': DateTime.now().toIso8601String(),
         'streak': 0,
       });
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Habitude '$name' ajoutée !"),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Erreur lors de l'ajout"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
+          content: Text("L'habitude '$name' existe déjà !"),
+          backgroundColor: Colors.orange,
         ),
       );
     }
@@ -63,12 +60,7 @@ class _HomePageState extends State<HomePage> {
       body: StreamBuilder<QuerySnapshot>(
         stream: habitsRef.snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(
-              child: Text("Erreur: ${snapshot.error}"),
-            );
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -77,7 +69,9 @@ class _HomePageState extends State<HomePage> {
               .toList();
 
           final completedToday = habits.where((h) => h.completed).length;
-          final maxStreak = habits.isEmpty ? 0 : habits.map((h) => h.streak).reduce((a, b) => a > b ? a : b);
+          final maxStreak = habits.isEmpty
+              ? 0
+              : habits.map((h) => h.streak).reduce((a, b) => a > b ? a : b);
 
           return Padding(
             padding: const EdgeInsets.all(12.0),
@@ -117,41 +111,39 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 12),
                 Expanded(
-                  child: habits.isEmpty
-                      ? const Center(child: Text("Aucune habitude pour l'instant"))
-                      : ListView.builder(
-                          itemCount: habits.length,
-                          itemBuilder: (context, index) {
-                            final habit = habits[index];
-                            return Card(
-                              elevation: 3,
-                              margin: const EdgeInsets.symmetric(vertical: 6),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: ListTile(
-                                title: Text(habit.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                subtitle: Text('Streak: ${habit.streak}'),
-                                leading: Checkbox(
-                                  value: habit.completed,
-                                  onChanged: (value) async {
-                                    await habitsRef.doc(habit.id).update({
-                                      'completed': value,
-                                      'streak': value! ? habit.streak + 1 : habit.streak,
-                                      'lastCompleted': DateTime.now().toIso8601String(),
-                                    });
-                                  },
-                                ),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.redAccent),
-                                  onPressed: () async {
-                                    await habitsRef.doc(habit.id).delete();
-                                  },
-                                ),
-                              ),
-                            );
-                          },
+                  child: ListView.builder(
+                    itemCount: habits.length,
+                    itemBuilder: (context, index) {
+                      final habit = habits[index];
+                      return Card(
+                        elevation: 3,
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
+                        child: ListTile(
+                          title: Text(habit.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          subtitle: Text('Streak: ${habit.streak}'),
+                          leading: Checkbox(
+                            value: habit.completed,
+                            onChanged: (value) async {
+                              await habitsRef.doc(habit.id).update({
+                                'completed': value,
+                                'streak': value! ? habit.streak + 1 : habit.streak,
+                                'lastCompleted': DateTime.now().toIso8601String(),
+                              });
+                            },
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.redAccent),
+                            onPressed: () async {
+                              await habitsRef.doc(habit.id).delete();
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Wrap(

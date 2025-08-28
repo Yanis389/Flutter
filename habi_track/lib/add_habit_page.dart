@@ -27,9 +27,9 @@ class _AddHabitPageState extends State<AddHabitPage> {
     }
 
     try {
-      // Vérifier si l'habitude existe déjà
+      // Vérification insensible à la casse
       final query = await habitsCollection
-          .where('name', isEqualTo: name)
+          .where('name_lower', isEqualTo: name.toLowerCase())
           .get();
 
       if (query.docs.isNotEmpty) {
@@ -46,12 +46,12 @@ class _AddHabitPageState extends State<AddHabitPage> {
       // Ajouter l'habitude
       await habitsCollection.add({
         'name': name,
+        'name_lower': name.toLowerCase(),
         'completed': false,
         'lastCompleted': DateTime.now().toIso8601String(),
         'streak': 0,
       });
 
-      // Message succès
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Habitude '$name' ajoutée avec succès !"),
@@ -60,7 +60,6 @@ class _AddHabitPageState extends State<AddHabitPage> {
         ),
       );
 
-      // Effacer le champ
       _controller.clear();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
